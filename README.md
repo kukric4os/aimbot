@@ -34,7 +34,6 @@ local AdvancedESP = {
     HealthBar = true,
     Skeleton = true,
     Chams = false,
-    Rainbow = false,
     TeamCheck = false,
     ShowTeam = false,
     MaxDistance = 1500,
@@ -149,15 +148,7 @@ local function isValidTarget(plr)
     return true, char, root, hum, distance
 end
 
-local function hsvRainbow(dt)
-    RainbowTime = RainbowTime + dt * AdvancedESP.RainbowSpeed
-    return Color3.fromHSV((RainbowTime % 1), 1, 1)
-end
-
 local function getColorForHealth(hum)
-    if AdvancedESP.Rainbow then
-        return Color3.fromHSV((tick() % 5) / 5, 1, 1)
-    end
     if not hum then return AdvancedESP.BoxColor end
     local maxH = (hum.MaxHealth > 0) and hum.MaxHealth or 100
     local pct = clamp(hum.Health / maxH, 0, 1)
@@ -411,8 +402,19 @@ local function getAimbotTarget()
                     local sp = Vector2.new(screen3.X, screen3.Y)
                     local d = (sp - center).Magnitude
                     if d <= Aimbot.FOV then
-                        if Aimbot.VisibleCheck and not screen3 then
-                            -- skip
+                        if Aimbot.VisibleCheck then
+                            local rayOrigin = cam.CFrame.Position
+                            local rayDirection = (part.Position - rayOrigin).Unit
+                            local raycastParams = RaycastParams.new()
+                            raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+                            raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+                            local rayResult = Workspace:Raycast(rayOrigin, rayDirection * 5000, raycastParams)
+                            if rayResult and rayResult.Instance:IsDescendantOf(char) then
+                                if d < bestDist then
+                                    bestDist = d
+                                    best = {player = plr, char = char, part = part, screenDist = d, worldPos = part.Position}
+                                end
+                            end
                         else
                             if d < bestDist then
                                 bestDist = d
@@ -453,7 +455,6 @@ local function UpdateAll(delta)
     Camera = Workspace.CurrentCamera or Camera
     if not Camera then return end
 
-    if AdvancedESP.Rainbow then hsvRainbow(delta) end
     updateFOVVisual()
 
     for plr, cont in pairs(ESP_Containers) do
@@ -496,7 +497,7 @@ local function UpdateAll(delta)
                         local botLeft = Vector2.new(legScreen.X - width/2, legScreen.Y)
                         local botRight = Vector2.new(legScreen.X + width/2, legScreen.Y)
 
-                        local colorBox = AdvancedESP.Rainbow and Color3.fromHSV((tick()%1),1,1) or AdvancedESP.BoxColor
+                        local colorBox = AdvancedESP.BoxColor
                         local colorName = AdvancedESP.NameColor
                         local colorSkel = AdvancedESP.SkeletonColor
                         if hum then colorBox = getColorForHealth(hum) end
@@ -545,7 +546,7 @@ local function UpdateAll(delta)
                             pcall(function()
                                 cont.Tracer.From = fromPos
                                 cont.Tracer.To = Vector2.new((botLeft.X + botRight.X)/2, botLeft.Y)
-                                cont.Tracer.Color = AdvancedESP.Rainbow and hsvRainbow(delta) or AdvancedESP.BoxColor
+                                cont.Tracer.Color = AdvancedESP.BoxColor
                                 cont.Tracer.Visible = AdvancedESP.Enabled
                             end)
                         end
@@ -618,7 +619,7 @@ local function UpdateAll(delta)
                                     pcall(function()
                                         line.From = Vector2.new(a2.X, a2.Y)
                                         line.To = Vector2.new(b2.X, b2.Y)
-                                        line.Color = AdvancedESP.Rainbow and hsvRainbow(delta) or AdvancedESP.SkeletonColor
+                                        line.Color = AdvancedESP.SkeletonColor
                                         line.Thickness = AdvancedESP.Thickness
                                         line.Transparency = AdvancedESP.Transparency
                                         line.Visible = AdvancedESP.Enabled and AdvancedESP.Skeleton and (aOn or bOn)
@@ -735,21 +736,21 @@ espFrame.Size = UDim2.new(1, 0, 1, 0)
 espFrame.BackgroundTransparency = 1
 espFrame.Visible = true
 espFrame.ScrollBarThickness = 4
-espFrame.CanvasSize = UDim2.new(0, 0, 0, 300)
+espFrame.CanvasSize = UDim2.new(0, 0, 0, 400)
 
 local colorFrame = Instance.new("ScrollingFrame", contentHolder)
 colorFrame.Size = UDim2.new(1, 0, 1, 0)
 colorFrame.BackgroundTransparency = 1
 colorFrame.Visible = false
 colorFrame.ScrollBarThickness = 4
-colorFrame.CanvasSize = UDim2.new(0, 0, 0, 400)
+colorFrame.CanvasSize = UDim2.new(0, 0, 0, 450)
 
 local aimFrame = Instance.new("ScrollingFrame", contentHolder)
 aimFrame.Size = UDim2.new(1, 0, 1, 0)
 aimFrame.BackgroundTransparency = 1
 aimFrame.Visible = false
 aimFrame.ScrollBarThickness = 4
-aimFrame.CanvasSize = UDim2.new(0, 0, 0, 400)
+aimFrame.CanvasSize = UDim2.new(0, 0, 0, 500)
 
 local miscFrame = Instance.new("ScrollingFrame", contentHolder)
 miscFrame.Size = UDim2.new(1, 0, 1, 0)
@@ -828,21 +829,20 @@ end
 
 local espOptions = {
     {label="Master", key="Enabled", y=0},
-    {label="Box", key="Box", y=32},
-    {label="Tracer", key="Tracer", y=64},
-    {label="Name", key="Name", y=96},
-    {label="Distance", key="Distance", y=128},
-    {label="Health Bar", key="HealthBar", y=160},
-    {label="Skeleton", key="Skeleton", y=192},
-    {label="Rainbow", key="Rainbow", y=224},
-    {label="Team Check", key="TeamCheck", y=256}
+    {label="Box", key="Box", y=34},
+    {label="Tracer", key="Tracer", y=68},
+    {label="Name", key="Name", y=102},
+    {label="Distance", key="Distance", y=136},
+    {label="Health Bar", key="HealthBar", y=170},
+    {label="Skeleton", key="Skeleton", y=204},
+    {label="Team Check", key="TeamCheck", y=238}
 }
 for _, opt in ipairs(espOptions) do createToggleButtonSimple(espFrame, opt.label, opt.key, opt.y) end
 
 -- Color Picker with Sliders
 local function createColorSlider(parent, label, configKey, yPos)
     local container = Instance.new("Frame", parent)
-    container.Size = UDim2.new(1, -8, 0, 90)
+    container.Size = UDim2.new(1, -8, 0, 100)
     container.Position = UDim2.new(0, 4, 0, yPos)
     container.BackgroundColor3 = Color3.fromRGB(18,18,18)
     container.BorderSizePixel = 0
@@ -859,7 +859,7 @@ local function createColorSlider(parent, label, configKey, yPos)
     labelText.TextXAlignment = Enum.TextXAlignment.Left
 
     local colorPreview = Instance.new("Frame", container)
-    colorPreview.Size = UDim2.new(0, 40, 0, 40)
+    colorPreview.Size = UDim2.new(0, 40, 0, 70)
     colorPreview.Position = UDim2.new(0, 4, 0, 22)
     colorPreview.BackgroundColor3 = AdvancedESP[configKey]
     colorPreview.BorderSizePixel = 1
@@ -877,7 +877,7 @@ local function createColorSlider(parent, label, configKey, yPos)
     rLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
 
     local rSlider = Instance.new("Frame", container)
-    rSlider.Size = UDim2.new(0.5, -56, 0, 16)
+    rSlider.Size = UDim2.new(0.4, -56, 0, 16)
     rSlider.Position = UDim2.new(0, 66, 0, 24)
     rSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     rSlider.BorderSizePixel = 0
@@ -907,7 +907,7 @@ local function createColorSlider(parent, label, configKey, yPos)
     gLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
 
     local gSlider = Instance.new("Frame", container)
-    gSlider.Size = UDim2.new(0.5, -56, 0, 16)
+    gSlider.Size = UDim2.new(0.4, -56, 0, 16)
     gSlider.Position = UDim2.new(0, 66, 0, 42)
     gSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     gSlider.BorderSizePixel = 0
@@ -937,7 +937,7 @@ local function createColorSlider(parent, label, configKey, yPos)
     bLabel.TextColor3 = Color3.fromRGB(100, 100, 255)
 
     local bSlider = Instance.new("Frame", container)
-    bSlider.Size = UDim2.new(0.5, -56, 0, 16)
+    bSlider.Size = UDim2.new(0.4, -56, 0, 16)
     bSlider.Position = UDim2.new(0, 66, 0, 60)
     bSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     bSlider.BorderSizePixel = 0
@@ -1019,8 +1019,8 @@ local function createColorSlider(parent, label, configKey, yPos)
 end
 
 createColorSlider(colorFrame, "Box Color", "BoxColor", 0)
-createColorSlider(colorFrame, "Skeleton Color", "SkeletonColor", 100)
-createColorSlider(colorFrame, "Name Color", "NameColor", 200)
+createColorSlider(colorFrame, "Skeleton Color", "SkeletonColor", 110)
+createColorSlider(colorFrame, "Name Color", "NameColor", 220)
 
 -- AIMBOT tab
 local function createAimbotToggle(parent, label, getState, setState, yPos)
@@ -1053,7 +1053,7 @@ createAimbotToggle(aimFrame, "Aimbot Master", function() return Aimbot.Enabled e
 
 local modeBtn = Instance.new("TextButton", aimFrame)
 modeBtn.Size = UDim2.new(1, -8, 0, 28)
-modeBtn.Position = UDim2.new(0, 4, 0, 32)
+modeBtn.Position = UDim2.new(0, 4, 0, 34)
 modeBtn.BackgroundColor3 = Color3.fromRGB(28,28,28)
 modeBtn.BorderSizePixel = 0
 modeBtn.Text = "Mode: " .. Aimbot.Mode
@@ -1069,7 +1069,7 @@ end)
 
 local bindBtn = Instance.new("TextButton", aimFrame)
 bindBtn.Size = UDim2.new(1, -8, 0, 28)
-bindBtn.Position = UDim2.new(0, 4, 0, 64)
+bindBtn.Position = UDim2.new(0, 4, 0, 68)
 bindBtn.BackgroundColor3 = Color3.fromRGB(28,28,28)
 bindBtn.BorderSizePixel = 0
 bindBtn.Text = "Bind: " .. Aimbot.BindName
@@ -1083,90 +1083,16 @@ bindBtn.MouseButton1Click:Connect(function()
     bindBtn.Text = "Press any key..."
 end)
 
-createAimbotToggle(aimFrame, "Show FOV", function() return Aimbot.ShowFOV end, function(v) Aimbot.ShowFOV = v createFOVVisual() end, 96)
-
-local aimPartBtn = Instance.new("TextButton", aimFrame)
-aimPartBtn.Size = UDim2.new(1, -8, 0, 28)
-aimPartBtn.Position = UDim2.new(0, 4, 0, 128)
-aimPartBtn.BackgroundColor3 = Color3.fromRGB(28,28,28)
-aimPartBtn.BorderSizePixel = 0
-aimPartBtn.Text = "Aim Part: " .. Aimbot.AimPart
-aimPartBtn.Font = Enum.Font.SourceSans
-aimPartBtn.TextColor3 = Color3.new(1,1,1)
-aimPartBtn.TextSize = 12
-aimPartBtn.AutoButtonColor = false
-Instance.new("UICorner", aimPartBtn).CornerRadius = UDim.new(0, 4)
-aimPartBtn.MouseButton1Click:Connect(function()
-    if Aimbot.AimPart == "Head" then Aimbot.AimPart = "HumanoidRootPart" else Aimbot.AimPart = "Head" end
-    aimPartBtn.Text = "Aim Part: " .. Aimbot.AimPart
-end)
-
--- Smoothing Slider
-local smoothContainer = Instance.new("Frame", aimFrame)
-smoothContainer.Size = UDim2.new(1, -8, 0, 40)
-smoothContainer.Position = UDim2.new(0, 4, 0, 160)
-smoothContainer.BackgroundColor3 = Color3.fromRGB(18,18,18)
-smoothContainer.BorderSizePixel = 0
-Instance.new("UICorner", smoothContainer).CornerRadius = UDim.new(0, 4)
-
-local smoothLabel = Instance.new("TextLabel", smoothContainer)
-smoothLabel.Size = UDim2.new(1, -8, 0, 16)
-smoothLabel.Position = UDim2.new(0, 4, 0, 2)
-smoothLabel.BackgroundTransparency = 1
-smoothLabel.Text = "Smoothing: " .. string.format("%.2f", Aimbot.Smoothing)
-smoothLabel.Font = Enum.Font.SourceSans
-smoothLabel.TextSize = 10
-smoothLabel.TextColor3 = Color3.new(1,1,1)
-
-local smoothSlider = Instance.new("Frame", smoothContainer)
-smoothSlider.Size = UDim2.new(1, -8, 0, 12)
-smoothSlider.Position = UDim2.new(0, 4, 0, 20)
-smoothSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-smoothSlider.BorderSizePixel = 0
-Instance.new("UICorner", smoothSlider).CornerRadius = UDim.new(0, 2)
-
-local smoothBar = Instance.new("Frame", smoothSlider)
-smoothBar.Size = UDim2.new(Aimbot.Smoothing / 0.95, 0, 1, 0)
-smoothBar.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
-smoothBar.BorderSizePixel = 0
-
-local smoothDragging = false
-smoothSlider.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        smoothDragging = true
-    end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        smoothDragging = false
-    end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if smoothDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local mouse = UserInputService:GetMouseLocation()
-        local sliderPos = smoothSlider.AbsolutePosition.X
-        local sliderSize = smoothSlider.AbsoluteSize.X
-        local relative = clamp(mouse.X - sliderPos, 0, sliderSize)
-        local percent = relative / sliderSize
-        Aimbot.Smoothing = percent * 0.95
-        smoothBar.Size = UDim2.new(percent, 0, 1, 0)
-        smoothLabel.Text = "Smoothing: " .. string.format("%.2f", Aimbot.Smoothing)
-    end
-end)
-
--- MISC tab
-local fullbrightBtn = createAimbotToggle(miscFrame, "Fullbright", function() return FullbrightConfig.Enabled end, function(v) FullbrightConfig.Enabled = v setFullbright(v) end, 0)
-
--- FOV Slider (0-120)
-local fovContainer = Instance.new("Frame", miscFrame)
-fovContainer.Size = UDim2.new(1, -8, 0, 40)
-fovContainer.Position = UDim2.new(0, 4, 0, 32)
+-- FOV Slider in AIM
+local fovContainer = Instance.new("Frame", aimFrame)
+fovContainer.Size = UDim2.new(1, -8, 0, 50)
+fovContainer.Position = UDim2.new(0, 4, 0, 102)
 fovContainer.BackgroundColor3 = Color3.fromRGB(18,18,18)
 fovContainer.BorderSizePixel = 0
 Instance.new("UICorner", fovContainer).CornerRadius = UDim.new(0, 4)
 
 local fovLabel = Instance.new("TextLabel", fovContainer)
-fovLabel.Size = UDim2.new(1, -8, 0, 16)
+fovLabel.Size = UDim2.new(1, -8, 0, 18)
 fovLabel.Position = UDim2.new(0, 4, 0, 2)
 fovLabel.BackgroundTransparency = 1
 fovLabel.Text = "FOV: " .. tostring(Aimbot.FOV)
@@ -1176,7 +1102,7 @@ fovLabel.TextColor3 = Color3.new(1,1,1)
 
 local fovSlider = Instance.new("Frame", fovContainer)
 fovSlider.Size = UDim2.new(1, -8, 0, 12)
-fovSlider.Position = UDim2.new(0, 4, 0, 20)
+fovSlider.Position = UDim2.new(0, 4, 0, 22)
 fovSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 fovSlider.BorderSizePixel = 0
 Instance.new("UICorner", fovSlider).CornerRadius = UDim.new(0, 2)
@@ -1211,10 +1137,128 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
+-- FOV +/- buttons
+local fovButtonsRow = Instance.new("Frame", aimFrame)
+fovButtonsRow.Size = UDim2.new(1, -8, 0, 28)
+fovButtonsRow.Position = UDim2.new(0, 4, 0, 156)
+fovButtonsRow.BackgroundTransparency = 1
+
+local fovMinusBtn = Instance.new("TextButton", fovButtonsRow)
+fovMinusBtn.Size = UDim2.new(0.48, 0, 1, 0)
+fovMinusBtn.Position = UDim2.new(0, 0, 0, 0)
+fovMinusBtn.BackgroundColor3 = Color3.fromRGB(28,28,28)
+fovMinusBtn.BorderSizePixel = 0
+fovMinusBtn.Text = "FOV -"
+fovMinusBtn.Font = Enum.Font.SourceSans
+fovMinusBtn.TextColor3 = Color3.new(1,1,1)
+fovMinusBtn.TextSize = 11
+fovMinusBtn.AutoButtonColor = false
+Instance.new("UICorner", fovMinusBtn).CornerRadius = UDim.new(0, 4)
+fovMinusBtn.MouseButton1Click:Connect(function()
+    Aimbot.FOV = clamp(Aimbot.FOV - 5, 0, 120)
+    fovLabel.Text = "FOV: " .. tostring(Aimbot.FOV)
+    fovBar.Size = UDim2.new(Aimbot.FOV / 120, 0, 1, 0)
+    createFOVVisual()
+end)
+
+local fovPlusBtn = Instance.new("TextButton", fovButtonsRow)
+fovPlusBtn.Size = UDim2.new(0.48, 0, 1, 0)
+fovPlusBtn.Position = UDim2.new(0.52, 0, 0, 0)
+fovPlusBtn.BackgroundColor3 = Color3.fromRGB(28,28,28)
+fovPlusBtn.BorderSizePixel = 0
+fovPlusBtn.Text = "FOV +"
+fovPlusBtn.Font = Enum.Font.SourceSans
+fovPlusBtn.TextColor3 = Color3.new(1,1,1)
+fovPlusBtn.TextSize = 11
+fovPlusBtn.AutoButtonColor = false
+Instance.new("UICorner", fovPlusBtn).CornerRadius = UDim.new(0, 4)
+fovPlusBtn.MouseButton1Click:Connect(function()
+    Aimbot.FOV = clamp(Aimbot.FOV + 5, 0, 120)
+    fovLabel.Text = "FOV: " .. tostring(Aimbot.FOV)
+    fovBar.Size = UDim2.new(Aimbot.FOV / 120, 0, 1, 0)
+    createFOVVisual()
+end)
+
+createAimbotToggle(aimFrame, "Show FOV", function() return Aimbot.ShowFOV end, function(v) Aimbot.ShowFOV = v createFOVVisual() end, 190)
+
+createAimbotToggle(aimFrame, "Visible Check", function() return Aimbot.VisibleCheck end, function(v) Aimbot.VisibleCheck = v end, 224)
+
+local aimPartBtn = Instance.new("TextButton", aimFrame)
+aimPartBtn.Size = UDim2.new(1, -8, 0, 28)
+aimPartBtn.Position = UDim2.new(0, 4, 0, 258)
+aimPartBtn.BackgroundColor3 = Color3.fromRGB(28,28,28)
+aimPartBtn.BorderSizePixel = 0
+aimPartBtn.Text = "Aim Part: " .. Aimbot.AimPart
+aimPartBtn.Font = Enum.Font.SourceSans
+aimPartBtn.TextColor3 = Color3.new(1,1,1)
+aimPartBtn.TextSize = 12
+aimPartBtn.AutoButtonColor = false
+Instance.new("UICorner", aimPartBtn).CornerRadius = UDim.new(0, 4)
+aimPartBtn.MouseButton1Click:Connect(function()
+    if Aimbot.AimPart == "Head" then Aimbot.AimPart = "HumanoidRootPart" else Aimbot.AimPart = "Head" end
+    aimPartBtn.Text = "Aim Part: " .. Aimbot.AimPart
+end)
+
+-- MISC tab
+createAimbotToggle(miscFrame, "Fullbright", function() return FullbrightConfig.Enabled end, function(v) FullbrightConfig.Enabled = v setFullbright(v) end, 0)
+
+-- FOV Slider in MISC (0-120)
+local miscFovContainer = Instance.new("Frame", miscFrame)
+miscFovContainer.Size = UDim2.new(1, -8, 0, 50)
+miscFovContainer.Position = UDim2.new(0, 4, 0, 34)
+miscFovContainer.BackgroundColor3 = Color3.fromRGB(18,18,18)
+miscFovContainer.BorderSizePixel = 0
+Instance.new("UICorner", miscFovContainer).CornerRadius = UDim.new(0, 4)
+
+local miscFovLabel = Instance.new("TextLabel", miscFovContainer)
+miscFovLabel.Size = UDim2.new(1, -8, 0, 18)
+miscFovLabel.Position = UDim2.new(0, 4, 0, 2)
+miscFovLabel.BackgroundTransparency = 1
+miscFovLabel.Text = "Zoom FOV: " .. tostring(ZoomConfig.ZoomLevel)
+miscFovLabel.Font = Enum.Font.SourceSans
+miscFovLabel.TextSize = 10
+miscFovLabel.TextColor3 = Color3.new(1,1,1)
+
+local miscFovSlider = Instance.new("Frame", miscFovContainer)
+miscFovSlider.Size = UDim2.new(1, -8, 0, 12)
+miscFovSlider.Position = UDim2.new(0, 4, 0, 22)
+miscFovSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+miscFovSlider.BorderSizePixel = 0
+Instance.new("UICorner", miscFovSlider).CornerRadius = UDim.new(0, 2)
+
+local miscFovBar = Instance.new("Frame", miscFovSlider)
+miscFovBar.Size = UDim2.new(ZoomConfig.ZoomLevel / 120, 0, 1, 0)
+miscFovBar.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
+miscFovBar.BorderSizePixel = 0
+
+local miscFovDragging = false
+miscFovSlider.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        miscFovDragging = true
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        miscFovDragging = false
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if miscFovDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local mouse = UserInputService:GetMouseLocation()
+        local sliderPos = miscFovSlider.AbsolutePosition.X
+        local sliderSize = miscFovSlider.AbsoluteSize.X
+        local relative = clamp(mouse.X - sliderPos, 0, sliderSize)
+        local percent = relative / sliderSize
+        ZoomConfig.ZoomLevel = math.floor(percent * 120)
+        miscFovBar.Size = UDim2.new(percent, 0, 1, 0)
+        miscFovLabel.Text = "Zoom FOV: " .. tostring(ZoomConfig.ZoomLevel)
+    end
+end)
+
 -- Zoom bind button
 local zoomBindBtn = Instance.new("TextButton", miscFrame)
 zoomBindBtn.Size = UDim2.new(1, -8, 0, 28)
-zoomBindBtn.Position = UDim2.new(0, 4, 0, 80)
+zoomBindBtn.Position = UDim2.new(0, 4, 0, 88)
 zoomBindBtn.BackgroundColor3 = Color3.fromRGB(28,28,28)
 zoomBindBtn.BorderSizePixel = 0
 zoomBindBtn.Text = "Zoom Bind: " .. ZoomConfig.BindName
@@ -1244,7 +1288,6 @@ local function setZoomBind(keyCode)
 end
 
 UserInputService.InputBegan:Connect(function(input, processed)
-    if processed then return end
     if listeningForBind then
         if input.UserInputType == Enum.UserInputType.Keyboard then
             setBind(input.KeyCode)
@@ -1268,7 +1311,6 @@ UserInputService.InputBegan:Connect(function(input, processed)
     end
 end)
 UserInputService.InputEnded:Connect(function(input, processed)
-    if processed then return end
     if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Aimbot.Bind then
         keyDown = false
     end
@@ -1299,11 +1341,14 @@ local function setMenuOpen(open)
 end
 
 UserInputService.InputBegan:Connect(function(input, processed)
-    if processed then return end
     if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.P then
         setMenuOpen(not menuOpen)
+        return
     end
-    if input.KeyCode == Enum.KeyCode.Escape then setMenuOpen(false) end
+    if input.KeyCode == Enum.KeyCode.Escape and menuOpen then 
+        setMenuOpen(false)
+        return
+    end
 end)
 
 -- Dragging
