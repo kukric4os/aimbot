@@ -1,14 +1,12 @@
--- GLORIUS GANG HUB - ESP + AIMBOT (Color UI removed, restored simpler config)
+-- ABBADON OONA - ESP + AIMBOT (Color UI + Fullbright)
 -- LocalScript for client (StarterPlayerScripts / StarterGui)
--- This version removes the RGB color-editing UI and returns to the previous default color configuration.
--- Features preserved:
+-- Features:
 --  - Advanced ESP (Box, Tracer, Name, Distance, HealthBar, Skeleton)
---  - Movable GUI (drag title bar), tabs (ESP / AIMBOT)
+--  - Color picker UI for ESP Box, Skeleton, Name colors
+--  - Fullbright option
+--  - Movable GUI (drag title bar), tabs (ESP / AIMBOT / COLORS)
 --  - Animated open/close, toggle buttons
 --  - Aimbot with bindable key, Mode (Hold/Toggle), FOV circle, smoothing, aim part selector
--- Notes:
---  - To change colors now, edit the AdvancedESP table at the top (BoxColor, NameColor, SkeletonColor)
---  - Drawing API is used when available, otherwise Billboard fallback is used
 
 -- Services
 local Players = game:GetService("Players")
@@ -16,6 +14,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
 
 -- Cached refs
 local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
@@ -23,7 +22,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local Camera = Workspace.CurrentCamera
 
 -- ====================
--- CONFIG: ESP (default colors only)
+-- CONFIG: ESP (default colors)
 -- ====================
 local AdvancedESP = {
     Enabled = true,
@@ -33,7 +32,7 @@ local AdvancedESP = {
     Distance = true,
     HealthBar = true,
     Skeleton = true,
-    Chams = false, -- removed usage in UI, stays false by default
+    Chams = false,
     Rainbow = false,
     TeamCheck = false,
     ShowTeam = false,
@@ -53,13 +52,23 @@ local AdvancedESP = {
 }
 
 -- ====================
+-- CONFIG: FULLBRIGHT
+-- ====================
+local FullbrightConfig = {
+    Enabled = false,
+    OriginalBrightness = Lighting.Brightness,
+    OriginalAmbient = Lighting.Ambient,
+    OriginalOutdoorAmbient = Lighting.OutdoorAmbient
+}
+
+-- ====================
 -- CONFIG: AIMBOT
 -- ====================
 local Aimbot = {
     Enabled = false,
     Bind = Enum.KeyCode.E,
     BindName = "E",
-    Mode = "Hold",     -- "Hold" or "Toggle"
+    Mode = "Hold",
     FOV = 140,
     ShowFOV = true,
     Smoothing = 0.12,
@@ -322,7 +331,7 @@ end
 for _, plr in ipairs(Players:GetPlayers()) do if plr ~= LocalPlayer then createESP(plr) end end
 Players.PlayerAdded:Connect(function(plr) if plr ~= LocalPlayer then createESP(plr) end end)
 
--- FOV visual (drawing or gui fallback)
+-- FOV visual
 local function createFOVVisual()
     safeRemove(fovCircle)
     if fovGui and fovGui.Parent then fovGui:Destroy(); fovGui = nil end
@@ -386,6 +395,22 @@ local function updateFOVVisual()
     end
 end
 
+-- Fullbright toggle
+local function setFullbright(enabled)
+    if enabled then
+        FullbrightConfig.OriginalBrightness = Lighting.Brightness
+        FullbrightConfig.OriginalAmbient = Lighting.Ambient
+        FullbrightConfig.OriginalOutdoorAmbient = Lighting.OutdoorAmbient
+        Lighting.Brightness = 2
+        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+    else
+        Lighting.Brightness = FullbrightConfig.OriginalBrightness
+        Lighting.Ambient = FullbrightConfig.OriginalAmbient
+        Lighting.OutdoorAmbient = FullbrightConfig.OriginalOutdoorAmbient
+    end
+end
+
 -- Aimbot target selection & aim
 local function getAimbotTarget()
     local cam = Camera or Workspace.CurrentCamera
@@ -429,7 +454,7 @@ local function aimAtTarget(target, delta)
     pcall(function() cam.CFrame = cam.CFrame:Lerp(targetCFrame, lerpFactor) end)
 end
 
--- Main update loop (ESP + Aim)
+-- Main update loop
 local function UpdateAll(delta)
     Camera = Workspace.CurrentCamera or Camera
     if not Camera then return end
@@ -635,14 +660,14 @@ else
 end
 
 -- ====================
--- GUI (organized, color UI removed)
+-- GUI (organized with Color Controls + Fullbright)
 -- ====================
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "GloriusGangHubGui"
+screenGui.Name = "AbbadonOonaGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = PlayerGui
 
-local targetSize = UDim2.new(0, 620, 0, 720)
+local targetSize = UDim2.new(0, 620, 0, 820)
 local closedSize = UDim2.new(0, 0, 0, 0)
 
 local mainFrame = Instance.new("Frame")
@@ -655,7 +680,7 @@ mainFrame.Active = true
 mainFrame.ClipsDescendants = true
 mainFrame.Parent = screenGui
 
--- TitleBar and tabs
+-- TitleBar
 local titleBar = Instance.new("Frame", mainFrame)
 titleBar.Name = "TitleBar"
 titleBar.Size = UDim2.new(1, 0, 0, 64)
@@ -666,11 +691,13 @@ titleLabel.Name = "TitleLabel"
 titleLabel.Size = UDim2.new(0.6, -20, 1, 0)
 titleLabel.Position = UDim2.new(0, 14, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "GLORIUS GANG HUB"
-titleLabel.TextColor3 = Color3.new(1,1,1)
+titleLabel.Text = "ABBADON OONA"
+titleLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
 titleLabel.Font = Enum.Font.SourceSansBold
 titleLabel.TextSize = 20
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.TextStrokeTransparency = 0.3
+titleLabel.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
 
 local tabsHolder = Instance.new("Frame", titleBar)
 tabsHolder.Name = "Tabs"
@@ -679,22 +706,33 @@ tabsHolder.Position = UDim2.new(0.6, 0, 0, 0)
 tabsHolder.BackgroundTransparency = 1
 
 local espTab = Instance.new("TextButton", tabsHolder)
-espTab.Size = UDim2.new(0.5, -6, 0.6, 0)
-espTab.Position = UDim2.new(0, 6, 0.2, 0)
+espTab.Size = UDim2.new(0.33, -4, 0.6, 0)
+espTab.Position = UDim2.new(0, 0, 0.2, 0)
 espTab.Text = "ESP"
 espTab.Font = Enum.Font.SourceSans
-espTab.TextSize = 14
+espTab.TextSize = 12
 espTab.BackgroundColor3 = Color3.fromRGB(60,60,60)
 espTab.TextColor3 = Color3.new(1,1,1)
 espTab.AutoButtonColor = false
 Instance.new("UICorner", espTab).CornerRadius = UDim.new(0.1, 0)
 
+local colorTab = Instance.new("TextButton", tabsHolder)
+colorTab.Size = UDim2.new(0.33, -4, 0.6, 0)
+colorTab.Position = UDim2.new(0.33, 0, 0.2, 0)
+colorTab.Text = "Colors"
+colorTab.Font = Enum.Font.SourceSans
+colorTab.TextSize = 12
+colorTab.BackgroundColor3 = Color3.fromRGB(28,28,28)
+colorTab.TextColor3 = Color3.new(1,1,1)
+colorTab.AutoButtonColor = false
+Instance.new("UICorner", colorTab).CornerRadius = UDim.new(0.1, 0)
+
 local aimTab = Instance.new("TextButton", tabsHolder)
-aimTab.Size = UDim2.new(0.5, -6, 0.6, 0)
-aimTab.Position = UDim2.new(0.5, 0, 0.2, 0)
+aimTab.Size = UDim2.new(0.33, -4, 0.6, 0)
+aimTab.Position = UDim2.new(0.66, 0, 0.2, 0)
 aimTab.Text = "Aimbot"
 aimTab.Font = Enum.Font.SourceSans
-aimTab.TextSize = 14
+aimTab.TextSize = 12
 aimTab.BackgroundColor3 = Color3.fromRGB(28,28,28)
 aimTab.TextColor3 = Color3.new(1,1,1)
 aimTab.AutoButtonColor = false
@@ -711,6 +749,11 @@ espFrame.Size = UDim2.new(1, 0, 1, 0)
 espFrame.BackgroundTransparency = 1
 espFrame.Visible = true
 
+local colorFrame = Instance.new("Frame", contentHolder)
+colorFrame.Size = UDim2.new(1, 0, 1, 0)
+colorFrame.BackgroundTransparency = 1
+colorFrame.Visible = false
+
 local aimbotFrame = Instance.new("Frame", contentHolder)
 aimbotFrame.Size = UDim2.new(1, 0, 1, 0)
 aimbotFrame.BackgroundTransparency = 1
@@ -718,14 +761,26 @@ aimbotFrame.Visible = false
 
 espTab.MouseButton1Click:Connect(function()
     espFrame.Visible = true
+    colorFrame.Visible = false
     aimbotFrame.Visible = false
     espTab.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    colorTab.BackgroundColor3 = Color3.fromRGB(28,28,28)
+    aimTab.BackgroundColor3 = Color3.fromRGB(28,28,28)
+end)
+colorTab.MouseButton1Click:Connect(function()
+    espFrame.Visible = false
+    colorFrame.Visible = true
+    aimbotFrame.Visible = false
+    espTab.BackgroundColor3 = Color3.fromRGB(28,28,28)
+    colorTab.BackgroundColor3 = Color3.fromRGB(60,60,60)
     aimTab.BackgroundColor3 = Color3.fromRGB(28,28,28)
 end)
 aimTab.MouseButton1Click:Connect(function()
     espFrame.Visible = false
+    colorFrame.Visible = false
     aimbotFrame.Visible = true
     espTab.BackgroundColor3 = Color3.fromRGB(28,28,28)
+    colorTab.BackgroundColor3 = Color3.fromRGB(28,28,28)
     aimTab.BackgroundColor3 = Color3.fromRGB(60,60,60)
 end)
 
@@ -773,7 +828,7 @@ local espOptions = {
 }
 for _, opt in ipairs(espOptions) do createToggleButtonSimple(espFrame, opt.label, opt.key) end
 
--- MaxDistance in ESP tab
+-- MaxDistance
 local espDistFrame = Instance.new("Frame", espFrame)
 espDistFrame.Size = UDim2.new(1, 0, 0, 64)
 espDistFrame.BackgroundTransparency = 1
@@ -818,7 +873,157 @@ espPlus.MouseButton1Click:Connect(function()
     espDistLabel.Text = "MaxDistance: " .. tostring(AdvancedESP.MaxDistance)
 end)
 
--- AIMBOT tab: controls (Bind, Mode, FOV +/- , ShowFOV toggle, Smoothing +/- , AimPart)
+-- Color Picker Tab
+local colorGrid = Instance.new("UIGridLayout", colorFrame)
+colorGrid.CellPadding = UDim2.new(0, 10, 0, 10)
+colorGrid.CellSize = UDim2.new(1, -10, 0, 100)
+colorGrid.FillDirection = Enum.FillDirection.Vertical
+colorGrid.SortOrder = Enum.SortOrder.LayoutOrder
+
+local function createColorPicker(parent, label, configKey)
+    local container = Instance.new("Frame", parent)
+    container.Size = UDim2.new(1, 0, 0, 100)
+    container.BackgroundTransparency = 1
+
+    local labelText = Instance.new("TextLabel", container)
+    labelText.Size = UDim2.new(1, 0, 0, 24)
+    labelText.BackgroundTransparency = 1
+    labelText.Text = label
+    labelText.Font = Enum.Font.SourceSansBold
+    labelText.TextSize = 14
+    labelText.TextColor3 = Color3.new(1,1,1)
+    labelText.TextXAlignment = Enum.TextXAlignment.Left
+
+    local colorPreview = Instance.new("Frame", container)
+    colorPreview.Size = UDim2.new(0, 100, 0, 50)
+    colorPreview.Position = UDim2.new(0, 0, 0, 26)
+    colorPreview.BackgroundColor3 = AdvancedESP[configKey]
+    colorPreview.BorderSizePixel = 0
+
+    local rSlider = Instance.new("Frame", container)
+    rSlider.Size = UDim2.new(1, -110, 0, 16)
+    rSlider.Position = UDim2.new(0, 110, 0, 30)
+    rSlider.BackgroundTransparency = 1
+
+    local rLabel = Instance.new("TextLabel", rSlider)
+    rLabel.Size = UDim2.new(0, 30, 1, 0)
+    rLabel.BackgroundTransparency = 1
+    rLabel.Text = "R"
+    rLabel.Font = Enum.Font.SourceSans
+    rLabel.TextSize = 12
+    rLabel.TextColor3 = Color3.new(1,1,1)
+
+    local rInput = Instance.new("TextBox", rSlider)
+    rInput.Size = UDim2.new(1, -35, 1, 0)
+    rInput.Position = UDim2.new(0, 35, 0, 0)
+    rInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    rInput.TextColor3 = Color3.new(1,1,1)
+    rInput.Font = Enum.Font.SourceSans
+    rInput.TextSize = 12
+    rInput.ClearTextOnFocus = false
+
+    local gSlider = Instance.new("Frame", container)
+    gSlider.Size = UDim2.new(1, -110, 0, 16)
+    gSlider.Position = UDim2.new(0, 110, 0, 48)
+    gSlider.BackgroundTransparency = 1
+
+    local gLabel = Instance.new("TextLabel", gSlider)
+    gLabel.Size = UDim2.new(0, 30, 1, 0)
+    gLabel.BackgroundTransparency = 1
+    gLabel.Text = "G"
+    gLabel.Font = Enum.Font.SourceSans
+    gLabel.TextSize = 12
+    gLabel.TextColor3 = Color3.new(1,1,1)
+
+    local gInput = Instance.new("TextBox", gSlider)
+    gInput.Size = UDim2.new(1, -35, 1, 0)
+    gInput.Position = UDim2.new(0, 35, 0, 0)
+    gInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    gInput.TextColor3 = Color3.new(1,1,1)
+    gInput.Font = Enum.Font.SourceSans
+    gInput.TextSize = 12
+    gInput.ClearTextOnFocus = false
+
+    local bSlider = Instance.new("Frame", container)
+    bSlider.Size = UDim2.new(1, -110, 0, 16)
+    bSlider.Position = UDim2.new(0, 110, 0, 66)
+    bSlider.BackgroundTransparency = 1
+
+    local bLabel = Instance.new("TextLabel", bSlider)
+    bLabel.Size = UDim2.new(0, 30, 1, 0)
+    bLabel.BackgroundTransparency = 1
+    bLabel.Text = "B"
+    bLabel.Font = Enum.Font.SourceSans
+    bLabel.TextSize = 12
+    bLabel.TextColor3 = Color3.new(1,1,1)
+
+    local bInput = Instance.new("TextBox", bSlider)
+    bInput.Size = UDim2.new(1, -35, 1, 0)
+    bInput.Position = UDim2.new(0, 35, 0, 0)
+    bInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    bInput.TextColor3 = Color3.new(1,1,1)
+    bInput.Font = Enum.Font.SourceSans
+    bInput.TextSize = 12
+    bInput.ClearTextOnFocus = false
+
+    local function updateColor()
+        local r = tonumber(rInput.Text) or math.floor(AdvancedESP[configKey].R * 255)
+        local g = tonumber(gInput.Text) or math.floor(AdvancedESP[configKey].G * 255)
+        local b = tonumber(bInput.Text) or math.floor(AdvancedESP[configKey].B * 255)
+        r = clamp(r, 0, 255)
+        g = clamp(g, 0, 255)
+        b = clamp(b, 0, 255)
+        AdvancedESP[configKey] = Color3.fromRGB(r, g, b)
+        colorPreview.BackgroundColor3 = AdvancedESP[configKey]
+    end
+
+    local function syncInputs()
+        local r = math.floor(AdvancedESP[configKey].R * 255)
+        local g = math.floor(AdvancedESP[configKey].G * 255)
+        local b = math.floor(AdvancedESP[configKey].B * 255)
+        rInput.Text = tostring(r)
+        gInput.Text = tostring(g)
+        bInput.Text = tostring(b)
+        colorPreview.BackgroundColor3 = AdvancedESP[configKey]
+    end
+
+    rInput.FocusLost:Connect(updateColor)
+    gInput.FocusLost:Connect(updateColor)
+    bInput.FocusLost:Connect(updateColor)
+
+    syncInputs()
+
+    return container
+end
+
+createColorPicker(colorFrame, "Box Color", "BoxColor")
+createColorPicker(colorFrame, "Skeleton Color", "SkeletonColor")
+createColorPicker(colorFrame, "Name Color", "NameColor")
+
+-- Fullbright toggle
+local fullbrightBtn = Instance.new("TextButton", colorFrame)
+fullbrightBtn.Size = UDim2.new(1, 0, 0, 52)
+fullbrightBtn.BackgroundColor3 = Color3.fromRGB(28,28,28)
+fullbrightBtn.BorderSizePixel = 0
+fullbrightBtn.Text = "Fullbright"
+fullbrightBtn.Font = Enum.Font.SourceSans
+fullbrightBtn.TextColor3 = Color3.new(1,1,1)
+fullbrightBtn.TextSize = 16
+fullbrightBtn.AutoButtonColor = false
+
+local fullbrightIndicator = Instance.new("Frame", fullbrightBtn)
+fullbrightIndicator.Size = UDim2.new(0, 46, 0, 28)
+fullbrightIndicator.Position = UDim2.new(1, -56, 0.5, -14)
+fullbrightIndicator.BackgroundColor3 = FullbrightConfig.Enabled and Color3.fromRGB(0,170,70) or Color3.fromRGB(80,80,80)
+Instance.new("UICorner", fullbrightIndicator).CornerRadius = UDim.new(0.5,0)
+
+fullbrightBtn.MouseButton1Click:Connect(function()
+    FullbrightConfig.Enabled = not FullbrightConfig.Enabled
+    setFullbright(FullbrightConfig.Enabled)
+    fullbrightIndicator.BackgroundColor3 = FullbrightConfig.Enabled and Color3.fromRGB(0,170,70) or Color3.fromRGB(80,80,80)
+end)
+
+-- AIMBOT tab
 local aimGrid = Instance.new("UIGridLayout", aimbotFrame)
 aimGrid.CellPadding = UDim2.new(0, 10, 0, 10)
 aimGrid.CellSize = UDim2.new(0.48, 0, 0, 52)
@@ -860,19 +1065,19 @@ local fovRow = Instance.new("Frame", aimbotFrame)
 fovRow.Size = UDim2.new(1,0,0,52); fovRow.BackgroundTransparency = 1
 local fovLabel = Instance.new("TextLabel", fovRow); fovLabel.Size = UDim2.new(0.6,0,1,0); fovLabel.Position = UDim2.new(0,8,0,0)
 fovLabel.BackgroundTransparency = 1; fovLabel.Text = "FOV: " .. tostring(Aimbot.FOV); fovLabel.Font = Enum.Font.SourceSans; fovLabel.TextSize = 16; fovLabel.TextColor3 = Color3.new(1,1,1); fovLabel.TextXAlignment = Enum.TextXAlignment.Left
-local fovMinus = Instance.new("TextButton", fovRow); fovMinus.Size = UDim2.new(0,84,0,36); fovMinus.Position = UDim2.new(1,-184,0,8); fovMinus.Text = "-" ; fovMinus.Font = Enum.Font.SourceSansBold; fovMinus.TextSize = 22; fovMinus.BackgroundColor3 = Color3.fromRGB(28,28,28)
-local fovPlus = Instance.new("TextButton", fovRow); fovPlus.Size = UDim2.new(0,84,0,36); fovPlus.Position = UDim2.new(1,-92,0,8); fovPlus.Text = "+"; fovPlus.Font = Enum.Font.SourceSansBold; fovPlus.TextSize = 22; fovPlus.BackgroundColor3 = Color3.fromRGB(28,28,28)
+local fovMinus = Instance.new("TextButton", fovRow); fovMinus.Size = UDim2.new(0,84,0,36); fovMinus.Position = UDim2.new(1,-184,0,8); fovMinus.Text = "-" ; fovMinus.Font = Enum.Font.SourceSansBold; fovMinus.TextSize = 16; fovMinus.BackgroundColor3 = Color3.fromRGB(28,28,28); fovMinus.TextColor3 = Color3.new(1,1,1); fovMinus.BorderSizePixel = 0
+local fovPlus = Instance.new("TextButton", fovRow); fovPlus.Size = UDim2.new(0,84,0,36); fovPlus.Position = UDim2.new(1,-92,0,8); fovPlus.Text = "+"; fovPlus.Font = Enum.Font.SourceSansBold; fovPlus.TextSize = 16; fovPlus.BackgroundColor3 = Color3.fromRGB(28,28,28); fovPlus.TextColor3 = Color3.new(1,1,1); fovPlus.BorderSizePixel = 0
 fovMinus.MouseButton1Click:Connect(function() Aimbot.FOV = clamp(Aimbot.FOV - 10, 20, 2000); fovLabel.Text = "FOV: " .. tostring(Aimbot.FOV); createFOVVisual() end)
 fovPlus.MouseButton1Click:Connect(function() Aimbot.FOV = clamp(Aimbot.FOV + 10, 20, 2000); fovLabel.Text = "FOV: " .. tostring(Aimbot.FOV); createFOVVisual() end)
-local showFOVBtn = createAimbotToggle(aimbotFrame, "Show FOV", function() return Aimbot.ShowFOV end, function(v) Aimbot.ShowFOV = v if UseDrawing and fovCircle then fovCircle.Visible = v end if fovGui and fovGui.Parent then local holder = fovGui:FindFirstChild("FOVHolder"); if holder then local circle = holder:FindFirstChildOfClass("ImageLabel"); if circle then circle.ImageTransparency = v and 0.5 or 1 end end end end)
+local showFOVBtn = createAimbotToggle(aimbotFrame, "Show FOV", function() return Aimbot.ShowFOV end, function(v) Aimbot.ShowFOV = v if UseDrawing and fovCircle then fovCircle.Visible = v end if fovGui and fovGui.Parent then local c = fovGui:FindFirstChildOfClass("ImageLabel") if c then c.ImageTransparency = v and 0.5 or 1 end end end)
 
 -- Smoothing row
 local smoothRow = Instance.new("Frame", aimbotFrame)
 smoothRow.Size = UDim2.new(1,0,0,52); smoothRow.BackgroundTransparency = 1
 local smoothLabel = Instance.new("TextLabel", smoothRow); smoothLabel.Size = UDim2.new(0.6,0,1,0); smoothLabel.Position = UDim2.new(0,8,0,0)
 smoothLabel.BackgroundTransparency = 1; smoothLabel.Text = "Smoothing: " .. string.format("%.2f", Aimbot.Smoothing); smoothLabel.Font = Enum.Font.SourceSans; smoothLabel.TextSize = 16; smoothLabel.TextColor3 = Color3.new(1,1,1); smoothLabel.TextXAlignment = Enum.TextXAlignment.Left
-local smoothMinus = Instance.new("TextButton", smoothRow); smoothMinus.Size = UDim2.new(0,84,0,36); smoothMinus.Position = UDim2.new(1,-184,0,8); smoothMinus.Text = "-" ; smoothMinus.Font = Enum.Font.SourceSansBold; smoothMinus.TextSize = 22; smoothMinus.BackgroundColor3 = Color3.fromRGB(28,28,28)
-local smoothPlus = Instance.new("TextButton", smoothRow); smoothPlus.Size = UDim2.new(0,84,0,36); smoothPlus.Position = UDim2.new(1,-92,0,8); smoothPlus.Text = "+" ; smoothPlus.Font = Enum.Font.SourceSansBold; smoothPlus.TextSize = 22; smoothPlus.BackgroundColor3 = Color3.fromRGB(28,28,28)
+local smoothMinus = Instance.new("TextButton", smoothRow); smoothMinus.Size = UDim2.new(0,84,0,36); smoothMinus.Position = UDim2.new(1,-184,0,8); smoothMinus.Text = "-" ; smoothMinus.Font = Enum.Font.SourceSansBold; smoothMinus.TextSize = 16; smoothMinus.BackgroundColor3 = Color3.fromRGB(28,28,28); smoothMinus.TextColor3 = Color3.new(1,1,1); smoothMinus.BorderSizePixel = 0
+local smoothPlus = Instance.new("TextButton", smoothRow); smoothPlus.Size = UDim2.new(0,84,0,36); smoothPlus.Position = UDim2.new(1,-92,0,8); smoothPlus.Text = "+" ; smoothPlus.Font = Enum.Font.SourceSansBold; smoothPlus.TextSize = 16; smoothPlus.BackgroundColor3 = Color3.fromRGB(28,28,28); smoothPlus.TextColor3 = Color3.new(1,1,1); smoothPlus.BorderSizePixel = 0
 smoothMinus.MouseButton1Click:Connect(function() Aimbot.Smoothing = clamp(Aimbot.Smoothing - 0.02, 0, 0.95); smoothLabel.Text = "Smoothing: " .. string.format("%.2f", Aimbot.Smoothing) end)
 smoothPlus.MouseButton1Click:Connect(function() Aimbot.Smoothing = clamp(Aimbot.Smoothing + 0.02, 0, 0.95); smoothLabel.Text = "Smoothing: " .. string.format("%.2f", Aimbot.Smoothing) end)
 
@@ -918,7 +1123,12 @@ end)
 createFOVVisual()
 
 -- Menu open/close and dragging
-local function tweenObject(obj, props, info) info = info or TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out); local ok, t = pcall(function() return TweenService:Create(obj, info, props) end); if ok and t then pcall(function() t:Play() end) end end
+local function tweenObject(obj, props, info)
+    info = info or TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local ok, t = pcall(function() return TweenService:Create(obj, info, props) end)
+    if ok and t then t:Play() end
+end
+
 local menuOpen = false
 local function setMenuOpen(open)
     if open == menuOpen then return end
@@ -978,10 +1188,9 @@ spawn(function()
         modeBtn.Text = "Mode: " .. Aimbot.Mode
         aimPartBtn.Text = "Aim Part: " .. Aimbot.AimPart
         espDistLabel.Text = "MaxDistance: " .. tostring(AdvancedESP.MaxDistance)
-        -- ensure fov visuals updated
         if UseDrawing and fovCircle then fovCircle.Radius = Aimbot.FOV; fovCircle.Visible = Aimbot.ShowFOV end
         task.wait(0.15)
     end
 end)
 
-print("GLORIUS GANG HUB (default color UI restored) loaded. Press 'P' to open the menu. Drawing available:", UseDrawing)
+print("✨ ABBADON OONA loaded! Press 'P' to open the menu. Drawing available:", UseDrawing)
